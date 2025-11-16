@@ -3,11 +3,10 @@ const {
     createAudioPlayer,
     createAudioResource,
     NoSubscriberBehavior,
-    AudioPlayerStatus,
-    getVoiceConnection
+    AudioPlayerStatus
 } = require("@discordjs/voice");
-const ytdl = require("ytdl-core");
-const ffmpeg = require("ffmpeg-static");
+
+const play = require("play-dl");
 
 class MusicQueue {
     constructor() {
@@ -23,7 +22,7 @@ class MusicQueue {
             adapterCreator: message.guild.voiceAdapterCreator,
             selfDeaf: false,
             selfMute: false
-});
+        });
 
         const player = createAudioPlayer({
             behaviors: {
@@ -46,9 +45,9 @@ class MusicQueue {
 
         serverQueue.songs.push(song);
 
-        if (serverQueue.playing) return;
-
-        this.processQueue(guildId, message);
+        if (!serverQueue.playing) {
+            this.processQueue(guildId, message);
+        }
     }
 
     async processQueue(guildId, message) {
@@ -63,17 +62,15 @@ class MusicQueue {
         serverQueue.playing = true;
 
         try {
-            const stream = ytdl(song.url, {
-                filter: "audioonly",
-                quality: "highestaudio",
-                highWaterMark: 1 << 25
-            });
+            const stream = await play.stream(song.url);
 
-            const resource = createAudioResource(stream);
+            const resource = createAudioResource(stream.stream, {
+                inputType: stream.type
+            });
 
             serverQueue.player.play(resource);
 
-            message.channel.send(`🎵 Now playing: **${song.url}**`);
+            message.channel.send(`🎵 **Now playing:** ${song.url}`);
 
             serverQueue.player.once(AudioPlayerStatus.Idle, () => {
                 serverQueue.songs.shift();
@@ -81,8 +78,8 @@ class MusicQueue {
             });
 
         } catch (err) {
-            console.log("Playback error:", err);
-            message.channel.send("⚠ Error playing the song.");
+            console.log("Music error:", err);
+            message.channel.send("Error playing the song.");
             serverQueue.songs.shift();
             this.processQueue(guildId, message);
         }
