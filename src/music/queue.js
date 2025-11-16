@@ -20,7 +20,7 @@ class MusicQueue {
             channelId: channel.id,
             guildId: message.guild.id,
             adapterCreator: message.guild.voiceAdapterCreator,
-            selfDeaf: false,
+            selfDeaf: false,   // NOT deafened
             selfMute: false
         });
 
@@ -42,7 +42,6 @@ class MusicQueue {
 
     async playSong(guildId, song, message) {
         const serverQueue = this.queue.get(guildId);
-
         serverQueue.songs.push(song);
 
         if (!serverQueue.playing) {
@@ -63,13 +62,11 @@ class MusicQueue {
 
         try {
             const stream = await play.stream(song.url);
-
             const resource = createAudioResource(stream.stream, {
                 inputType: stream.type
             });
 
             serverQueue.player.play(resource);
-
             message.channel.send(`🎵 **Now playing:** ${song.url}`);
 
             serverQueue.player.once(AudioPlayerStatus.Idle, () => {
@@ -79,7 +76,7 @@ class MusicQueue {
 
         } catch (err) {
             console.log("Music error:", err);
-            message.channel.send("Error playing the song.");
+            message.channel.send("⚠ Error playing this song.");
             serverQueue.songs.shift();
             this.processQueue(guildId, message);
         }
