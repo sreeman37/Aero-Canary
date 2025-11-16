@@ -5,7 +5,7 @@ module.exports = {
 
         client.user.setPresence({
             activities: [
-                { name: "https://aero.app", type: 4 }
+                { name: "https://voltaic.dev/", type: 4 }
             ],
             status: "dnd"
         });
