@@ -1,11 +1,12 @@
 {
   "dependencies": {
+    "@discordjs/voice": "^0.17.0",
     "discord.js": "^14.24.2",
     "dotenv": "^17.2.3",
-    "@discordjs/voice": "^0.17.0",
-    "ytdl-core": "^4.11.4",
     "ffmpeg-static": "^5.2.0",
+    "play-dl": "^1.9.7",
+    "spotify-url-info": "^3.2.6",
     "yt-search": "^2.10.6",
-    "spotify-url-info": "^3.2.6"
+    "ytdl-core": "^4.11.4"
   }
 }
