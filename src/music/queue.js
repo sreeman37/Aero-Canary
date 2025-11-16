@@ -1,61 +1,45 @@
-const { createAudioPlayer, createAudioResource, joinVoiceChannel, AudioPlayerStatus } = require("@discordjs/voice");
-const ytdl = require("ytdl-core");
+const queue = require("../music/queue");
+const { getPreview } = require("spotify-url-info")(globalThis.fetch);
 const ytSearch = require("yt-search");
+const ffmpeg = require("ffmpeg-static");
 
-class MusicQueue {
-    constructor() {
-        this.queue = new Map();
-    }
+module.exports = {
+    name: "play",
+    run: async (client, message, args) => {
+        if (!message.member.voice.channel)
+            return message.channel.send("Join a voice channel first!");
 
-    async playSong(guildId, song, interaction) {
-        const serverQueue = this.queue.get(guildId);
-        serverQueue.songs.push(song);
+        if (!args.length) return message.channel.send("Provide a song name or link!");
 
-        if (!serverQueue.playing) {
-            serverQueue.playing = true;
-            this.play(guildId, interaction);
+        let query = args.join(" ");
+        let url = null;
+
+        if (!queue.queue.has(message.guild.id)) queue.createConnection(message);
+
+        if (query.includes("spotify.com")) {
+            try {
+                const data = await getPreview(query);
+                const searchQuery = `${data.title} ${data.artist}`;
+                const yt = (await ytSearch(searchQuery)).videos[0];
+                if (!yt) return message.channel.send("No YouTube version found.");
+                url = yt.url;
+            } catch (err) {
+                console.log(err);
+                return message.channel.send("Could not process Spotify link.");
+            }
         }
-    }
 
-    async play(guildId, message) {
-        const serverQueue = this.queue.get(guildId);
-        const song = serverQueue.songs[0];
-
-        if (!song) {
-            serverQueue.playing = false;
-            return;
+        else if (query.includes("youtube.com") || query.includes("youtu.be")) {
+            url = query;
         }
 
-        const stream = ytdl(song.url, { filter: "audioonly", quality: "highestaudio" });
+        else {
+            const yt = (await ytSearch(query)).videos[0];
+            if (!yt) return message.channel.send("No results found!");
+            url = yt.url;
+        }
 
-        const resource = createAudioResource(stream);
-        serverQueue.player.play(resource);
-
-        serverQueue.player.once(AudioPlayerStatus.Idle, () => {
-            serverQueue.songs.shift();
-            this.play(guildId, message);
-        });
+        await queue.playSong(message.guild.id, { url }, message);
+        message.channel.send(`Added to queue: **${url}**`);
     }
-
-    createConnection(message) {
-        const channel = message.member.voice.channel;
-
-        const connection = joinVoiceChannel({
-            channelId: channel.id,
-            guildId: message.guild.id,
-            adapterCreator: message.guild.voiceAdapterCreator,
-        });
-
-        const player = createAudioPlayer();
-        connection.subscribe(player);
-
-        this.queue.set(message.guild.id, {
-            connection,
-            player,
-            songs: [],
-            playing: false
-        });
-    }
-}
-
-module.exports = new MusicQueue();
+};
