@@ -3,6 +3,25 @@ const { Client, GatewayIntentBits, Collection } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
 
+const play = require("play-dl");
+
+(async () => {
+    if (await play.is_expired()) {
+        await play.refreshToken();
+    }
+
+    if (process.env.YT_COOKIE) {
+        play.setToken({
+            youtube: {
+                cookie: process.env.YT_COOKIE
+            }
+        });
+    }
+
+    play.use_ffmpeg = true;
+    play.setFfmpegPath("/usr/bin/ffmpeg");
+})();
+
 const prefix = ".";
 
 const client = new Client({
@@ -32,14 +51,14 @@ client.on("messageCreate", async (message) => {
     const args = message.content.slice(prefix.length).trim().split(/\s+/);
     const cmdName = args.shift().toLowerCase();
 
-    const command = client.commands.get(cmdName);
-    if (!command) return;
+    const cmd = client.commands.get(cmdName);
+    if (!cmd) return;
 
     try {
-        command.run(client, message, args);
+        await cmd.run(client, message, args);
     } catch (err) {
         console.error(err);
-        message.channel.send("❌ An error occurred.");
+        message.channel.send("❌ An internal error occurred.");
     }
 });
 
