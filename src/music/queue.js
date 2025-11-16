@@ -20,8 +20,10 @@ class MusicQueue {
         const connection = joinVoiceChannel({
             channelId: channel.id,
             guildId: message.guild.id,
-            adapterCreator: message.guild.voiceAdapterCreator
-        });
+            adapterCreator: message.guild.voiceAdapterCreator,
+            selfDeaf: false,
+            selfMute: false
+});
 
         const player = createAudioPlayer({
             behaviors: {
