@@ -2,8 +2,9 @@ const {
     joinVoiceChannel,
     createAudioPlayer,
     createAudioResource,
+    AudioPlayerStatus,
     NoSubscriberBehavior,
-    AudioPlayerStatus
+    getVoiceConnection
 } = require("@discordjs/voice");
 
 const play = require("play-dl");
@@ -14,13 +15,13 @@ class MusicQueue {
     }
 
     createConnection(message) {
-        const channel = message.member.voice.channel;
+        const guildId = message.guild.id;
 
         const connection = joinVoiceChannel({
-            channelId: channel.id,
-            guildId: message.guild.id,
+            channelId: message.member.voice.channel.id,
+            guildId: guildId,
             adapterCreator: message.guild.voiceAdapterCreator,
-            selfDeaf: false,   // NOT deafened
+            selfDeaf: false,
             selfMute: false
         });
 
@@ -32,7 +33,7 @@ class MusicQueue {
 
         connection.subscribe(player);
 
-        this.queue.set(message.guild.id, {
+        this.queue.set(guildId, {
             connection,
             player,
             songs: [],
@@ -41,45 +42,84 @@ class MusicQueue {
     }
 
     async playSong(guildId, song, message) {
-        const serverQueue = this.queue.get(guildId);
-        serverQueue.songs.push(song);
+        const guildQueue = this.queue.get(guildId);
+        if (!guildQueue) return message.channel.send("Queue not ready.");
 
-        if (!serverQueue.playing) {
-            this.processQueue(guildId, message);
+        guildQueue.songs.push(song);
+
+        if (!guildQueue.playing) {
+            guildQueue.playing = true;
+            this._playNext(guildId, message);
         }
     }
 
-    async processQueue(guildId, message) {
-        const serverQueue = this.queue.get(guildId);
-        const song = serverQueue.songs[0];
+    async _playNext(guildId, message) {
+        const guildQueue = this.queue.get(guildId);
+        const next = guildQueue.songs[0];
 
-        if (!song) {
-            serverQueue.playing = false;
-            return;
+        if (!next) {
+            guildQueue.playing = false;
+            return message.channel.send("Queue finished.");
         }
 
-        serverQueue.playing = true;
-
         try {
-            const stream = await play.stream(song.url);
+            const stream = await play.stream(next.url);
+
             const resource = createAudioResource(stream.stream, {
                 inputType: stream.type
             });
 
-            serverQueue.player.play(resource);
-            message.channel.send(`🎵 **Now playing:** ${song.url}`);
+            guildQueue.player.play(resource);
 
-            serverQueue.player.once(AudioPlayerStatus.Idle, () => {
-                serverQueue.songs.shift();
-                this.processQueue(guildId, message);
+            message.channel.send(`🎶 Now playing: **${next.url}**`);
+
+            guildQueue.player.once(AudioPlayerStatus.Idle, () => {
+                guildQueue.songs.shift(); // remove finished
+                this._playNext(guildId, message);
+            });
+
+            guildQueue.player.on("error", (err) => {
+                console.error(err);
+                message.channel.send("❌ Error playing the song.");
+                guildQueue.songs.shift();
+                this._playNext(guildId, message);
             });
 
         } catch (err) {
-            console.log("Music error:", err);
-            message.channel.send("⚠ Error playing this song.");
-            serverQueue.songs.shift();
-            this.processQueue(guildId, message);
+            console.error(err);
+            message.channel.send("❌ Error playing the song.");
+            guildQueue.songs.shift();
+            this._playNext(guildId, message);
         }
+    }
+
+    pause(guildId) {
+        const q = this.queue.get(guildId);
+        if (!q) return false;
+        q.player.pause();
+        return true;
+    }
+
+    resume(guildId) {
+        const q = this.queue.get(guildId);
+        if (!q) return false;
+        q.player.unpause();
+        return true;
+    }
+
+    stop(guildId) {
+        const q = this.queue.get(guildId);
+        if (!q) return false;
+
+        q.songs = [];
+        q.player.stop();
+
+        const conn = getVoiceConnection(guildId);
+        if (conn) conn.destroy();
+
+        this.queue.delete(guildId);
+
+        return true;
     }
 }
 
