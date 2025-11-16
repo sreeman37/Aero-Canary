@@ -1,5 +1,4 @@
 const os = require("os");
-const { EmbedBuilder } = require("discord.js");
 
 function formatTime(ms) {
     let seconds = Math.floor(ms / 1000);
@@ -19,19 +18,17 @@ module.exports = {
         const totalRam = (os.totalmem() / 1024 / 1024 / 1024).toFixed(0);
         const usedRam = ((os.totalmem() - os.freemem()) / 1024 / 1024 / 1024).toFixed(2);
 
-        const embed = new EmbedBuilder()
-            .setColor("#00A6FF")
-            .setTitle("aero-1 @ web")
-            .setDescription(`
-**Aero:** ${usedRam}/${totalRam}GB  
-**Node:** ${process.version}  
-**Discord.js:** v${require("discord.js").version}  
-**CPU:** ${cpuModel} (${cpuCores})  
-**RAM:** ${totalRam}GB (${((usedRam / totalRam) * 100).toFixed(2)}%)  
-**Uptime:** ${formatTime(client.uptime)}  
-`)
-            .setTimestamp();
+        const statsText = 
+`aero-1 @ web
 
-        message.channel.send({ embeds: [embed] });
+Aero: ${usedRam}/${totalRam}GB
+Node: ${process.version}
+Discord.js: v${require("discord.js").version}
+CPU: ${cpuModel} (${cpuCores})
+RAM: ${totalRam}GB (${((usedRam / totalRam) * 100).toFixed(2)}%)
+Uptime: ${formatTime(client.uptime)}
+`;
+
+        message.channel.send("```" + statsText + "```");
     }
 };
