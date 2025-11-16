@@ -1,6 +1,5 @@
 const queue = require("../music/queue");
-const fetch = require("node-fetch");
-const { getPreview } = require("spotify-url-info")(fetch);
+const { getPreview } = require("spotify-url-info")(globalThis.fetch);
 const ytSearch = require("yt-search");
 
 module.exports = {
