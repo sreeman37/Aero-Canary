@@ -2,35 +2,6 @@ require("dotenv").config();
 const { Client, GatewayIntentBits, Collection } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
-const play = require("play-dl");
-
-(async () => {
-
-    if (await play.is_expired()) {
-        await play.refreshToken();
-    }
-
-    if (process.env.YT_COOKIE) {
-        play.setToken({
-            youtube: {
-                cookie: process.env.YT_COOKIE
-            }
-        });
-    }
-
-    play.setToken({
-        spotify: {
-            client_id: process.env.SPOTIFY_CLIENT_ID,
-            client_secret: process.env.SPOTIFY_CLIENT_SECRET,
-            refresh_token: process.env.SPOTIFY_REFRESH_TOKEN,
-            market: "IN"
-        }
-    });
-
-    play.use_ffmpeg = true;
-    play.setFfmpegPath("/usr/bin/ffmpeg");
-
-})();
 
 const prefix = ".";
 
@@ -53,7 +24,7 @@ for (const file of commandFiles) {
 }
 
 const readyEvent = require("./src/ready.js");
-client.once("ready", () => readyEvent.run(client));
+client.once("clientReady", () => readyEvent.run(client));
 
 client.on("messageCreate", async (message) => {
     if (!message.content.startsWith(prefix) || message.author.bot) return;
@@ -68,7 +39,7 @@ client.on("messageCreate", async (message) => {
         await cmd.run(client, message, args);
     } catch (err) {
         console.error(err);
-        message.channel.send("❌ An internal error occurred.");
+        message.channel.send("An internal error occurred.");
     }
 });
 
