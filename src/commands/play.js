@@ -1,11 +1,11 @@
 const queue = require("../music/queue");
 const { getPreview } = require("spotify-url-info")(globalThis.fetch);
 const ytSearch = require("yt-search");
+require("ffmpeg-static");
 
 module.exports = {
     name: "play",
     run: async (client, message, args) => {
-
         if (!message.member.voice.channel)
             return message.channel.send("Join a voice channel first!");
 
@@ -22,16 +22,19 @@ module.exports = {
             try {
                 const data = await getPreview(query);
 
+                if (!data || !data.title)
+                    return message.channel.send("Spotify link could not be read.");
+
                 const searchQuery = `${data.title} ${data.artist}`;
                 const yt = (await ytSearch(searchQuery)).videos[0];
 
                 if (!yt)
-                    return message.channel.send("No YouTube version found.");
+                    return message.channel.send("No matching YouTube version found.");
 
                 url = yt.url;
-                query = `${data.title} - ${data.artist}`;
+
             } catch (err) {
-                console.log("SPOTIFY ERROR:", err);
+                console.error("Spotify Error:", err);
                 return message.channel.send("Could not process Spotify link.");
             }
         }
@@ -42,16 +45,13 @@ module.exports = {
 
         else {
             const yt = (await ytSearch(query)).videos[0];
-            if (!yt) return message.channel.send("No results found!");
+            if (!yt)
+                return message.channel.send("No search results found!");
             url = yt.url;
         }
 
-        await queue.playSong(
-            message.guild.id,
-            { url, title: query },
-            message
-        );
+        await queue.playSong(message.guild.id, { url }, message);
 
-        message.channel.send(`Added to queue: **${query}**`);
+        message.channel.send(`Added to queue: **${url}**`);
     }
 };
