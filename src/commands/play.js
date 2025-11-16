@@ -5,6 +5,7 @@ const ytSearch = require("yt-search");
 module.exports = {
     name: "play",
     run: async (client, message, args) => {
+
         if (!message.member.voice.channel)
             return message.channel.send("Join a voice channel first!");
 
@@ -19,22 +20,18 @@ module.exports = {
 
         if (query.includes("spotify.com")) {
             try {
-                const preview = await getPreview(query);
+                const data = await getPreview(query);
 
-                if (!preview || !preview.title || !preview.artist)
-                    return message.channel.send("Could not read Spotify info.");
-
-                const searchTerm = `${preview.title} ${preview.artist}`;
-                const yt = (await ytSearch(searchTerm)).videos[0];
+                const searchQuery = `${data.title} ${data.artist}`;
+                const yt = (await ytSearch(searchQuery)).videos[0];
 
                 if (!yt)
                     return message.channel.send("No YouTube version found.");
 
                 url = yt.url;
-                query = `${preview.title} – ${preview.artist}`;
-
+                query = `${data.title} - ${data.artist}`;
             } catch (err) {
-                console.error("Spotify error:", err);
+                console.log("SPOTIFY ERROR:", err);
                 return message.channel.send("Could not process Spotify link.");
             }
         }
@@ -45,13 +42,15 @@ module.exports = {
 
         else {
             const yt = (await ytSearch(query)).videos[0];
-            if (!yt)
-                return message.channel.send("No results found!");
-
+            if (!yt) return message.channel.send("No results found!");
             url = yt.url;
         }
 
-        await queue.playSong(message.guild.id, { url, title: query }, message);
+        await queue.playSong(
+            message.guild.id,
+            { url, title: query },
+            message
+        );
 
         message.channel.send(`Added to queue: **${query}**`);
     }
