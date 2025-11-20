@@ -19,9 +19,9 @@ module.exports = {
         const usedRam = ((os.totalmem() - os.freemem()) / 1024 / 1024 / 1024).toFixed(2);
 
         const statsText = 
-`aero-1 @ web
+`fred-1 @ web
 
-Aero: ${usedRam}/${totalRam}GB
+Fred: ${usedRam}/${totalRam}GB
 Node: ${process.version}
 Discord.js: v${require("discord.js").version}
 CPU: ${cpuModel} (${cpuCores})
