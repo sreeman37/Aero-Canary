@@ -5,9 +5,9 @@ module.exports = {
 
         client.user.setPresence({
             activities: [
-                { name: "https://voltaic.dev/", type: 4 }
+                { name: "https://fred.camp", type: 4 }
             ],
-            status: "dnd"
+            status: "online"
         });
     }
 };
